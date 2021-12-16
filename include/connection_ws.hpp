@@ -7,8 +7,10 @@
 #include <stdexcept>
 #include <thread>
 #include <websocketpp/client.hpp>
+#include <websocketpp/close.hpp>
 #include <websocketpp/common/connection_hdl.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
+#include <websocketpp/error.hpp>
 
 using namespace std::chrono_literals;
 
@@ -23,9 +25,8 @@ namespace sdk
     public:
         ws_connector(std::string const& host, uint16_t port)
         {
-            client_.clear_access_channels(websocketpp::log::alevel::frame_header);
-            client_.clear_access_channels(websocketpp::log::alevel::frame_payload);
-
+            // no logging from websocketpp
+            client_.clear_access_channels(websocketpp::log::alevel::all);
             client_.init_asio();
 
             client_.set_open_handler([&](auto handle) { on_open(handle); });
@@ -49,16 +50,13 @@ namespace sdk
 
             run_thread_ = websocketpp::lib::thread(&client_t::run, &client_);
 
-            auto timeout{std::chrono::system_clock::now() + 1s};
+            auto timeout{std::chrono::system_clock::now() + 200ms};
             while (!connected_.load() && std::chrono::system_clock::now() < timeout)
             {
                 std::this_thread::sleep_for(10ms);
             }
 
-            if (!connected_.load())
-            {
-                throw std::runtime_error{"Failed to connect to " + endpoint};
-            }
+            // throw if unconnected?
         }
 
         ~ws_connector()
@@ -70,6 +68,11 @@ namespace sdk
             run_thread_.join();
         }
 
+        /// @brief Send `message` to the Node and receive the response.
+        ///
+        /// Always call connected() before this, as this method does not check it.
+        /// @param message is the data to send.
+        /// @return the response.
         auto Send(std::string const& message) -> std::string override
         {
             std::string response;
@@ -80,10 +83,10 @@ namespace sdk
 
             client_.send(handle_, message, websocketpp::frame::opcode::text);
 
-            auto timeout = std::chrono::system_clock::now() + 1s;
+            auto timeout = std::chrono::system_clock::now() + 100ms;
             while (awaiting_msg_.load() && std::chrono::system_clock::now() < timeout)
             {
-                std::this_thread::sleep_for(10ms);
+                std::this_thread::sleep_for(1ms);
             }
 
             if (awaiting_msg_.load())
@@ -97,6 +100,9 @@ namespace sdk
             }
             return response;
         }
+
+        /// @brief Checks if a connection to the Node is established.
+        auto connected() const { return connected_.load(); }
 
     private:
         client_t client_;
@@ -116,7 +122,11 @@ namespace sdk
             // logging?
         }
 
-        void on_fail(websocketpp::connection_hdl) { connected_.store(false); }
+        void on_fail(websocketpp::connection_hdl)
+        {
+            // client_.close(handle_, websocketpp::close::status::abnormal_close, "fail");
+            connected_.store(false);
+        }
 
         void on_message(websocketpp::connection_hdl hdl, message_t msg)
         {
