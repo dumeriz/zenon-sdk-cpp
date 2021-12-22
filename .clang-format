@@ -2,7 +2,7 @@
 BasedOnStyle: Microsoft
 AccessModifierOffset: -4
 AlignAfterOpenBracket: Align
-AlignConsecutiveAssignments: 'true'
+AlignConsecutiveAssignments: 'false'
 AlignEscapedNewlines: Left
 AlignOperands: 'true'
 AlignTrailingComments: 'true'
@@ -19,7 +19,7 @@ BreakInheritanceList: BeforeColon
 CompactNamespaces: 'false'
 ConstructorInitializerAllOnOneLineOrOnePerLine: 'false'
 Cpp11BracedListStyle: 'true'
-IncludeBlocks: Regroup
+IncludeBlocks: Preserve
 IndentCaseLabels: 'false'
 KeepEmptyLinesAtTheStartOfBlocks: 'true'
 Language: Cpp

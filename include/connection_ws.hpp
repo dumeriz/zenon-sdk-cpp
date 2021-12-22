@@ -16,10 +16,9 @@ using namespace std::chrono_literals;
 
 namespace sdk
 {
-
     class ws_connector : public jsonrpccxx::IClientConnector
     {
-        using client_t  = websocketpp::client<websocketpp::config::asio_client>;
+        using client_t = websocketpp::client<websocketpp::config::asio_client>;
         using message_t = websocketpp::config::asio_client::message_type::ptr;
 
     public:
@@ -27,6 +26,7 @@ namespace sdk
         {
             // no logging from websocketpp
             client_.clear_access_channels(websocketpp::log::alevel::all);
+            client_.clear_error_channels(websocketpp::log::elevel::all);
             client_.init_asio();
 
             client_.set_open_handler([&](auto handle) { on_open(handle); });
@@ -35,7 +35,7 @@ namespace sdk
             client_.set_close_handler([&](auto handle) { on_close(handle); });
 
             websocketpp::lib::error_code ec;
-            auto endpoint   = host + ":" + std::to_string(port);
+            auto endpoint = host + ":" + std::to_string(port);
             auto connection = client_.get_connection(endpoint, ec);
 
             if (ec)
