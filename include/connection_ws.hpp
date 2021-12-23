@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <condition_variable>
 #include <jsonrpccxx/common.hpp>
 #include <jsonrpccxx/iclientconnector.hpp>
 #include <mutex>
@@ -20,6 +21,9 @@ namespace sdk
     {
         using client_t = websocketpp::client<websocketpp::config::asio_client>;
         using message_t = websocketpp::config::asio_client::message_type::ptr;
+
+        std::mutex req_res_mtx_;
+        std::condition_variable response_trigger_;
 
     public:
         ws_connector(std::string const& host, uint16_t port)
@@ -75,18 +79,15 @@ namespace sdk
         /// @return the response.
         auto Send(std::string const& message) -> std::string override
         {
-            std::string response;
             if (awaiting_msg_.exchange(true)) // parallel calls not supported in sync message
             {
-                return response; // define a unique error message for Send failure
+                return ""; // define a unique error message for Send failure
             }
 
             client_.send(handle_, message, websocketpp::frame::opcode::text);
-
-            auto timeout = std::chrono::system_clock::now() + 100ms;
-            while (awaiting_msg_.load() && std::chrono::system_clock::now() < timeout)
             {
-                std::this_thread::sleep_for(1ms);
+                std::unique_lock lock{req_res_mtx_};
+                response_trigger_.wait_for(lock, 100ms, [&] { return !awaiting_msg_.load(); });
             }
 
             if (awaiting_msg_.load())
@@ -95,10 +96,9 @@ namespace sdk
             }
 
             {
-                std::scoped_lock lock(mutex_);
-                std::swap(response, response_);
+                std::scoped_lock lock{mutex_};
+                return response_;
             }
-            return response;
         }
 
         /// @brief Checks if a connection to the Node is established.
@@ -133,6 +133,7 @@ namespace sdk
             std::scoped_lock lock(mutex_);
             response_ = msg->get_payload();
             awaiting_msg_.store(false);
+            response_trigger_.notify_one();
         }
 
         void on_close(websocketpp::connection_hdl hdl) { connected_.store(false); }

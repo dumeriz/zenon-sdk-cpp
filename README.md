@@ -1,7 +1,9 @@
 # zenon-sdk-cpp
-C++ implementation of the Zenon Network Wallet SDK
+C++ implementation of the Zenon Network Wallet SDK.
 
-### usage
+Currently only the basic structure and some wrappers for the JSON api exist.
+
+### Usage
 ```
 apt install libwebsocketpp-dev
 mkdir build && cd build
