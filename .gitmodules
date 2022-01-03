@@ -1,3 +1,6 @@
 [submodule "thirdparty/catch2"]
 	path = thirdparty/catch2
 	url = https://github.com/catchorg/Catch2.git
+[submodule "thirdparty/websocketpp"]
+	path = thirdparty/websocketpp
+	url = https://github.com/zaphoyd/websocketpp.git

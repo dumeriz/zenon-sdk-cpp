@@ -16,8 +16,11 @@ configure_file(zenon_sdk_config.h.in zenon_sdk_config.h)
 
 find_package(Threads REQUIRED)
 
+# this is header only but included to validate that the required libs exist
+add_subdirectory("${PROJECT_SOURCE_DIR}/thirdparty/websocketpp")
+
 # unit test library catch2
-add_subdirectory("${PROJECT_SOURCE_DIR}/thirdparty/catch2" REQUIRED)
+add_subdirectory("${PROJECT_SOURCE_DIR}/thirdparty/catch2")
 
 # path to catch2 provided module files for automatic test discovery
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/thirdparty/catch2/extras")
@@ -32,6 +35,7 @@ target_include_directories(embedded_tests PUBLIC "${PROJECT_BINARY_DIR}")
 target_include_directories(embedded_tests PUBLIC "${PROJECT_SOURCE_DIR}/include")
 target_include_directories(embedded_tests PUBLIC "${PROJECT_SOURCE_DIR}/thirdparty")
 target_include_directories(embedded_tests PUBLIC "${PROJECT_SOURCE_DIR}/thirdparty/catch2/src")
+target_include_directories(embedded_tests PUBLIC "${PROJECT_SOURCE_DIR}/thirdparty/websocketpp")
 
 target_link_libraries(embedded_tests Catch2::Catch2WithMain Catch2::Catch2 Threads::Threads)
 

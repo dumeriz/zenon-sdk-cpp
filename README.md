@@ -5,7 +5,7 @@ Currently only the basic structure and some wrappers for the JSON api exist.
 
 ### Usage
 ```
-apt install libwebsocketpp-dev
+git submodule update --init --recursive
 mkdir build && cd build
 cmake .. && make
 ```
@@ -15,7 +15,6 @@ There is no other target yet.
 ```
 ./embedded_tests
 ```
-
 should execute the only available test, which retrieves the current QSR registration cost from the api
 with both a http- and a websocket connection.
 
