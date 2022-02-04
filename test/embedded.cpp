@@ -1,59 +1,5 @@
+#include "helper.hpp"
 #include "api_embedded.hpp"
-#include "connection_http.hpp"
-#include "connection_ws.hpp"
-#include "sdk.hpp"
-
-#include <catch2/catch_test_macros.hpp>
-
-
-// ----- Definition of connection variables -----------------------------
-
-constexpr auto const http_host = "0.0.0.0";
-constexpr auto const ws_host = "ws://localhost";
-constexpr uint16_t const http_port = 35997;
-constexpr uint16_t const ws_port = 35998;
-
-// ----- Helper functions -----------------------------------------------
-
-template<typename C> auto set_connector(std::string host, uint16_t port)
-{
-    sdk::set_connector(std::make_shared<C>(host, port));
-}
-
-auto set_http_connection()
-{
-    set_connector<sdk::http_connector>(http_host, http_port);
-}
-
-auto set_ws_connection()
-{
-    set_connector<sdk::ws_connector>(ws_host, ws_port);
-}
-
-// ----- Macro to simplify test executions for both http and ws ---------
-
-#define DEF_TEST(label, topic, test_method) \
-    TEST_CASE(label, topic) { \
-        set_http_connection(); test_method(); \
-        set_ws_connection(); test_method(); \
-    }
-
-
-// ----- Helper for validation of the expected keys in a json map -------
-
-template<typename ... Keys>
-auto contains_keys(nlohmann::json const& map, std::string key, Keys&& ... keys)
-{
-    if constexpr (0 == sizeof...(Keys))
-    {
-        return map.contains(key);
-    }
-    else
-    {
-        return map.contains(key) && contains_keys(map, std::forward<Keys>(keys)...);
-    }
-}
-
 
 // ----- Test definitions -----------------------------------------------
 
@@ -82,21 +28,19 @@ auto pillar_get_all()
 {
     size_t amount = 5;
     auto actual = embedded::pillar::get_all(0, amount);
-
+    auto str(actual.dump());
 
     REQUIRE(contains_keys(actual, "count", "list"));
 
     for (size_t i{}; i < amount; i++)
     {
         REQUIRE(actual["list"][i].size() == 13);
-        REQUIRE(contains_keys(actual["list"][i],
-                    "currentStats", "giveDelegateRewardPercentage", "giveMomentumRewardPercentage",
-                    "isRevocable", "name", "ownerAddress", "producerAddress", "rank", "revokeCooldown", "revokeTimestamp",
-                    "type", "weight", "withdrawAddress"));
+        REQUIRE(contains_keys(actual["list"][i], "currentStats", "giveDelegateRewardPercentage",
+                              "giveMomentumRewardPercentage", "isRevocable", "name", "ownerAddress", "producerAddress",
+                              "rank", "revokeCooldown", "revokeTimestamp", "type", "weight", "withdrawAddress"));
 
         REQUIRE(actual["list"][i]["currentStats"].size() == 2);
-        REQUIRE(contains_keys(actual["list"][i]["currentStats"],
-                    "expectedMomentums", "producedMomentums"));
+        REQUIRE(contains_keys(actual["list"][i]["currentStats"], "expectedMomentums", "producedMomentums"));
     }
 
     // we could also check the types returned. checking the values is not useful as these change over time.
@@ -112,9 +56,29 @@ auto pillar_check_name_availability()
     REQUIRE(embedded::pillar::check_name_availability(does_not_exist));
 }
 
+auto pillar_get_by_owner() { REQUIRE(false); }
+
+auto pillar_get_by_name() { REQUIRE(false); }
+
+auto pillar_get_delegated_pillar() { REQUIRE(false); }
+
+auto pillar_get_deposited_qsr() { REQUIRE(false); }
+
+auto pillar_get_uncollected_reward() { REQUIRE(false); }
+
+auto pillar_get_frontier_reward_per_page() { REQUIRE(false); }
+
 // ----- Wrapping of test definitions in catch2-test macros -------------
 // Every test method from above must have an entry here.
 
-DEF_TEST("Pillar registration cost looks correct", "[embedded.pillar]", pillar_get_qsr_registration_cost);
-DEF_TEST("List of pillars has expected entries", "[embedded.pillar]", pillar_get_all);
+WSS_TEST("Pillar registration cost looks correct", "[embedded.pillar]", pillar_get_qsr_registration_cost);
+//WSS_TEST("List of pillars has expected entries", "[embedded.pillar]", pillar_get_all);
+/*
 DEF_TEST("Pillar name availability-check succeeds", "[embedded.pillar]", pillar_check_name_availability);
+DEF_TEST("Pillar can be retrieveed by owner", "[embedded.pillar]", pillar_get_by_owner);
+DEF_TEST("Pillar can be retrieveed by name", "[embedded.pillar]", pillar_get_by_name);
+DEF_TEST("Pillar delegations can be retrieved", "[embedded.pillar]", pillar_get_delegated_pillar);
+DEF_TEST("Deposited qsr matches pillar cost or 0 for random", "[embedded.pillar]", pillar_get_deposited_qsr);
+DEF_TEST("Uncollected pillar rewards are reported", "[embedded.pillar]", pillar_get_uncollected_reward);
+DEF_TEST("Frontier rewards match expected format", "[embedded.pillar]", pillar_get_frontier_reward_per_page);
+*/

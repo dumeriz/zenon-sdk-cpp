@@ -44,8 +44,10 @@ namespace sdk::detail
             return client_->CallMethod<Ret>(id, method.data(), params);
         }
 
+        auto connected() const -> bool { return connector_ && connector_->connected(); }
+
     private:
-        friend auto sdk::set_connector(sdk::connector_t) -> void;
+        friend auto sdk::detail::set_connector(sdk::connector_t) -> void;
         auto _set_connector(sdk::connector_t);
 
         std::mutex mtx_;

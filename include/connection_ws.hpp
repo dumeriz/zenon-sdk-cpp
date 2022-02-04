@@ -1,141 +1,133 @@
 #pragma once
 
+#include "connection_error.hpp"
+#include "connector.hpp"
+#include "ixwebsocket/IXWebSocketMessage.h"
+#include "ixwebsocket/IXWebSocketMessageType.h"
+
+#include <ixwebsocket/IXNetSystem.h>
+#include <ixwebsocket/IXUserAgent.h>
+#include <ixwebsocket/IXWebSocket.h>
+
 #include <chrono>
 #include <condition_variable>
-#include <jsonrpccxx/common.hpp>
-#include <jsonrpccxx/iclientconnector.hpp>
 #include <mutex>
 #include <stdexcept>
 #include <thread>
-#include <websocketpp/client.hpp>
-#include <websocketpp/close.hpp>
-#include <websocketpp/common/connection_hdl.hpp>
-#include <websocketpp/config/asio_no_tls_client.hpp>
-#include <websocketpp/error.hpp>
 
 using namespace std::chrono_literals;
 
 namespace sdk
 {
-    class ws_connector : public jsonrpccxx::IClientConnector
+    class ws_connector : public connector
     {
-        using client_t = websocketpp::client<websocketpp::config::asio_client>;
-        using message_t = websocketpp::config::asio_client::message_type::ptr;
-
-        std::mutex req_res_mtx_;
-        std::condition_variable response_trigger_;
-
     public:
         ws_connector(std::string const& host, uint16_t port)
         {
-            // no logging from websocketpp
-            client_.clear_access_channels(websocketpp::log::alevel::all);
-            client_.clear_error_channels(websocketpp::log::elevel::all);
-            client_.init_asio();
-
-            client_.set_open_handler([&](auto handle) { on_open(handle); });
-            client_.set_fail_handler([&](auto handle) { on_fail(handle); });
-            client_.set_message_handler([&](auto handle, auto message) { on_message(handle, message); });
-            client_.set_close_handler([&](auto handle) { on_close(handle); });
-
-            websocketpp::lib::error_code ec;
-            auto endpoint = host + ":" + std::to_string(port);
-            auto connection = client_.get_connection(endpoint, ec);
-
-            if (ec)
+            // must do this on windows. To check: is it safe to call this repeatedly, or does it have to be encapsulated
+            // in some static context? ix::initNetSystem();
+            websocket_.setUrl(host + ":" + std::to_string(port));
+            websocket_.setOnMessageCallback([&](auto const& msg) { delegate(msg); });
+            if (auto result{websocket_.connect(2)}; !result.success)
             {
-                throw std::runtime_error{"get_connection error " + ec.message()};
+                throw connection_error{"Connection failed: " + result.errorStr};
             }
-
-            handle_ = connection->get_handle();
-
-            // queued, connection is established in the run_thread_
-            client_.connect(connection);
-
-            run_thread_ = websocketpp::lib::thread(&client_t::run, &client_);
-
-            auto timeout{std::chrono::system_clock::now() + 200ms};
-            while (!connected_.load() && std::chrono::system_clock::now() < timeout)
-            {
-                std::this_thread::sleep_for(10ms);
-            }
-
-            // throw if unconnected?
+            websocket_.start();
         }
 
         ~ws_connector()
         {
-            if (connected_)
-            {
-                client_.close(handle_, websocketpp::close::status::normal, "");
-            }
-            run_thread_.join();
         }
 
         /// @brief Send `message` to the Node and receive the response.
         ///
         /// Always call connected() before this, as this method does not check it.
+        /// This message is explicitly NOT thread safe. You can call it from whatever thread you want,
+        /// but if you call it concurrently from several threads, at best the request/response-pairs will
+        /// be confused.
+        ///
         /// @param message is the data to send.
         /// @return the response.
-        auto Send(std::string const& message) -> std::string override
+        auto Send(std::string const& message) -> std::string override 
         {
-            if (awaiting_msg_.exchange(true)) // parallel calls not supported in sync message
-            {
-                return ""; // define a unique error message for Send failure
-            }
+            std::unique_lock<std::mutex> lock(req_res_mtx_);
 
-            client_.send(handle_, message, websocketpp::frame::opcode::text);
-            {
-                std::unique_lock lock{req_res_mtx_};
-                response_trigger_.wait_for(lock, 100ms, [&] { return !awaiting_msg_.load(); });
-            }
+            msg_received_.store(false);
+            websocket_.send(message);
 
-            if (awaiting_msg_.load())
+            if (response_trigger_.wait_for(lock, 5s, [&] { return msg_received_.load(); }))
             {
-                return ""; // define error for timeout
-            }
-
-            {
-                std::scoped_lock lock{mutex_};
                 return response_;
             }
+
+            throw connection_error{"Timeout during receive"};
         }
 
         /// @brief Checks if a connection to the Node is established.
-        auto connected() const { return connected_.load(); }
+        auto connected() const -> bool override { return connected_.load(); }
 
     private:
-        client_t client_;
-        websocketpp::connection_hdl handle_;
+        ix::WebSocket websocket_;
 
+        std::mutex send_mutex_;
+        std::mutex req_res_mtx_;
+        std::condition_variable response_trigger_;
         std::atomic_bool connected_{false};
-        std::atomic_bool awaiting_msg_{false};
+        std::atomic_bool msg_received_{false};
 
         std::mutex mutex_; // locking response_
         std::string response_;
 
-        websocketpp::lib::thread run_thread_; // connection active in the background
-
-        auto on_open(websocketpp::connection_hdl handle) -> void
+        auto signal_response_received()
         {
-            connected_.store(true);
-            // logging?
-        }
-
-        void on_fail(websocketpp::connection_hdl)
-        {
-            // client_.close(handle_, websocketpp::close::status::abnormal_close, "fail");
-            connected_.store(false);
-        }
-
-        void on_message(websocketpp::connection_hdl hdl, message_t msg)
-        {
-            std::scoped_lock lock(mutex_);
-            response_ = msg->get_payload();
-            awaiting_msg_.store(false);
+            msg_received_.store(true);
             response_trigger_.notify_one();
         }
 
-        void on_close(websocketpp::connection_hdl hdl) { connected_.store(false); }
+        auto on_open()
+        {
+            connected_.store(true);
+        }
+
+        auto on_close()
+        {
+            connected_.store(false);
+        }
+
+        auto on_message(ix::WebSocketMessagePtr const& msg)
+        {
+            {
+                std::lock_guard<std::mutex> lock{req_res_mtx_};
+                response_ = msg->str;
+            }
+            signal_response_received();
+        }
+
+        auto on_error(ix::WebSocketMessagePtr const& msg) const
+        {
+            throw connection_error{msg->errorInfo.reason};
+        }
+
+        auto delegate(ix::WebSocketMessagePtr const& msg) -> void
+        {
+            switch (msg->type)
+            {
+            case ix::WebSocketMessageType::Open:
+                on_open();
+                break;
+            case ix::WebSocketMessageType::Close:
+                on_close();
+                break;
+            case ix::WebSocketMessageType::Error:
+                on_error(msg);
+                break;
+            case ix::WebSocketMessageType::Message:
+                on_message(msg);
+            case ix::WebSocketMessageType::Fragment:
+            case ix::WebSocketMessageType::Ping:
+            case ix::WebSocketMessageType::Pong:
+                break;
+            }
+        }
     };
 } // namespace sdk
