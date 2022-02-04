@@ -23,39 +23,35 @@ endif()
 
 find_package(Threads REQUIRED)
 
-set(THIRDPARTY "${PROJECT_SOURCE_DIR}/thirdparty")
-
-# websocket client IXWebSocket
-set(USE_TLS ON CACHE BOOL "Build IXWebSocket with TLS support")
-#add_subdirectory("${THIRDPARTY}/IXWebSocket")
-set(WS_INC "${THIRDPARTY}/IXWebSocket/")
-#set(WS_LIB "${CMAKE_BUILD_DIR}/thirdparty/IXWebSocket/libixwebsocket.a")
-
-
-#find_package(OpenSSL REQUIRED)
-
-# unit test library catch2
-add_subdirectory("${THIRDPARTY}/catch2")
-
-# path to catch2 provided module files for automatic test discovery
-list(APPEND CMAKE_MODULE_PATH "${THIRDPARTY}/catch2/extras")
-
 ### targets
 
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src/")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/test/")
 
+include(FetchContent)
+
+FetchContent_Declare(ixwebsocket 
+    GIT_REPOSITORY https://github.com/machinezone/IXWebSocket.git
+    GIT_TAG 5f2955ef78edde86f284257462d5ca03416696e3) # v11.3.2
+FetchContent_MakeAvailable(ixwebsocket)
+
+FetchContent_Declare(catch2 
+    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+    GIT_TAG f4af9f69265d009a457aa99d1075cfba78652a66) # v3.0.0 preview 4
+FetchContent_MakeAvailable(catch2)
+
+FetchContent_Declare(jsonrpccxx 
+    GIT_REPOSITORY https://github.com/jsonrpcx/json-rpc-cxx
+    GIT_TAG 7bcd0d2e4e0b138558b019bb75a61b5bc7fe2380) # v0.3.0
+FetchContent_MakeAvailable(jsonrpccxx)
+
 set(TEST_INCLUDES
     "${PROJECT_BINARY_DIR}"
     "${PROJECT_SOURCE_DIR}/include"
-    "${THIRDPARTY}"
-    "${THIRDPARTY}/catch2/src"
-    "${THIRDPARTY}/IXWebSocket/"
+    "${catch2_SOURCE_DIR}/src"
+    "${jsonrpccxx_SOURCE_DIR}/include"
+    "${jsonrpccxx_SOURCE_DIR}/vendor"
 )
-
-include(FetchContent)
-FetchContent_Declare(ixwebsocket GIT_REPOSITORY https://github.com/machinezone/IXWebSocket.git)
-FetchContent_MakeAvailable(ixwebsocket)
 
 #get_cmake_property(_variableNames VARIABLES)
 #list (SORT _variableNames)
@@ -63,7 +59,7 @@ FetchContent_MakeAvailable(ixwebsocket)
 #    message(STATUS "${_variableName}=${${_variableName}}")
 #endforeach()
 
-set(TEST_LIBS Catch2::Catch2WithMain Catch2::Catch2 Threads::Threads "${SYS_LIBS}")#"${OPENSSL_LIBRARIES}")
+set(TEST_LIBS Catch2::Catch2WithMain Catch2::Catch2 Threads::Threads "${SYS_LIBS}")
 
 set(API_SRC ${SRC_DIR}/api_embedded.cpp ${SRC_DIR}/api_ledger.cpp)
 
