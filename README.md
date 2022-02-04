@@ -10,7 +10,6 @@ brew install openssl libdeflate
 ```
 Then build the tests:
 ```
-git submodule update --init --recursive
 mkdir build && cd build
 cmake .. && make
 ```
@@ -34,3 +33,5 @@ Testing framework is Catch2, https://github.com/catchorg/Catch2
 Jsonrpc library is json-rpc-cxx, https://github.com/jsonrpcx/json-rpc-cxx/tree/master/include/jsonrpccxx
 
 Websocket library is IXWebSocket, https://github.com/machinezone/IXWebSocket
+
+These libraries are pulled in via cmake's FetchContent mechanism when running `cmake ..`.
