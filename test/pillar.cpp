@@ -101,12 +101,13 @@ auto pillar_get_by_name()
 
 auto pillar_get_delegated_pillar()
 {
-    std::string const exists{embedded::pillar::get_all(0, 1).value["list"][0]["ownerAddress"]};
+    std::string const exists{embedded::pillar::get_all(0, 1).value["list"][0]["withdrawAddress"]};
     std::string does_not_exist{exists};
     does_not_exist.replace(0, 1, "X");
 
     auto existing = embedded::pillar::get_delegated_pillar(exists);
     auto non_existing = embedded::pillar::get_delegated_pillar(does_not_exist);
+    //std::cout << exists << std::endl;
     //std::cout << existing.value.dump() << std::endl;
 
     // null?
@@ -166,7 +167,7 @@ DEF_TEST("Pillar name availability-check succeeds", "[embedded.pillar]", pillar_
 DEF_TEST("Pillar can be retrieveed by owner", "[embedded.pillar]", pillar_get_by_owner);
 DEF_TEST("Pillar can be retrieveed by name", "[embedded.pillar]", pillar_get_by_name);
 // TODO: doesn't work currently; api returns null. Why?
-//DEF_TEST("Pillar delegations can be retrieved", "[embedded.pillar]", pillar_get_delegated_pillar);
+DEF_TEST("Pillar delegations can be retrieved", "[embedded.pillar]", pillar_get_delegated_pillar);
 DEF_TEST("Deposited qsr matches pillar cost or 0 for random", "[embedded.pillar]", pillar_get_deposited_qsr);
 DEF_TEST("Uncollected pillar rewards are reported", "[embedded.pillar]", pillar_get_uncollected_reward);
 DEF_TEST("Frontier rewards match expected format", "[embedded.pillar]", pillar_get_frontier_reward_per_page);
