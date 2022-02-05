@@ -30,19 +30,23 @@ set(TEST_DIR "${PROJECT_SOURCE_DIR}/test/")
 
 include(FetchContent)
 
+set(USE_TLS ON CACHE INTERNAL "Enable secure websocket support")
 FetchContent_Declare(ixwebsocket 
     GIT_REPOSITORY https://github.com/machinezone/IXWebSocket.git
     GIT_TAG 5f2955ef78edde86f284257462d5ca03416696e3) # v11.3.2
+
 FetchContent_MakeAvailable(ixwebsocket)
 
 FetchContent_Declare(catch2 
     GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG f4af9f69265d009a457aa99d1075cfba78652a66) # v3.0.0 preview 4
+    GIT_TAG        v3.0.0-preview4) #  f4af9f69265d009a457aa99d1075cfba78652a66
+
 FetchContent_MakeAvailable(catch2)
 
 FetchContent_Declare(jsonrpccxx 
     GIT_REPOSITORY https://github.com/jsonrpcx/json-rpc-cxx
     GIT_TAG 7bcd0d2e4e0b138558b019bb75a61b5bc7fe2380) # v0.3.0
+
 FetchContent_MakeAvailable(jsonrpccxx)
 
 set(TEST_INCLUDES
@@ -59,21 +63,29 @@ set(TEST_INCLUDES
 #    message(STATUS "${_variableName}=${${_variableName}}")
 #endforeach()
 
-set(TEST_LIBS Catch2::Catch2WithMain Catch2::Catch2 Threads::Threads "${SYS_LIBS}")
+set(TEST_LIBS Catch2::Catch2 Threads::Threads "${SYS_LIBS}")
 
 set(API_SRC ${SRC_DIR}/api_embedded.cpp ${SRC_DIR}/api_ledger.cpp)
 
-add_executable(embedded_tests "${PROJECT_SOURCE_DIR}/test/embedded.cpp" ${API_SRC} ${SRC_DIR}/sdk.cpp ${TEST_DIR}/connection.cpp)
+add_executable(embedded_tests
+    "${PROJECT_SOURCE_DIR}/test/embedded.cpp" "${PROJECT_SOURCE_DIR}/test/main.cpp"
+    ${API_SRC} ${SRC_DIR}/sdk.cpp ${TEST_DIR}/connection.cpp)
+
 target_include_directories(embedded_tests PUBLIC "${TEST_INCLUDES}")
+
 target_link_libraries(embedded_tests PRIVATE "${TEST_LIBS}" ixwebsocket)
 
-add_executable(connection_tests "${PROJECT_SOURCE_DIR}/test/connection.cpp" ${SRC_DIR}/sdk.cpp ${SRC_DIR}/api_ledger.cpp ${TEST_DIR}/connection.cpp)
+add_executable(connection_tests
+    "${PROJECT_SOURCE_DIR}/test/connection.cpp" "${PROJECT_SOURCE_DIR}/test/main.cpp"
+    ${SRC_DIR}/sdk.cpp ${SRC_DIR}/api_ledger.cpp ${TEST_DIR}/connection.cpp)
+
 target_include_directories(connection_tests PUBLIC "${TEST_INCLUDES}")
+
 target_link_libraries(connection_tests "${TEST_LIBS}" ixwebsocket)
 
-### cmake test discovery, only required if ctest is wanted
+### cmake test discovery
 
-#include(CTest)
-## provided by catch2 in /extras
-#include(Catch)
-#catch_discover_tests(embedded_tests)
+list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras/)
+include(CTest)
+include(Catch)
+catch_discover_tests(embedded_tests)

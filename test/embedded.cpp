@@ -1,5 +1,5 @@
-#include "helper.hpp"
 #include "api_embedded.hpp"
+#include "helper.hpp"
 
 // ----- Test definitions -----------------------------------------------
 
@@ -71,9 +71,8 @@ auto pillar_get_frontier_reward_per_page() { REQUIRE(false); }
 // ----- Wrapping of test definitions in catch2-test macros -------------
 // Every test method from above must have an entry here.
 
-WSS_TEST("Pillar registration cost looks correct", "[embedded.pillar]", pillar_get_qsr_registration_cost);
-//WSS_TEST("List of pillars has expected entries", "[embedded.pillar]", pillar_get_all);
-/*
+DEF_TEST("Pillar registration cost looks correct", "[embedded.pillar]", pillar_get_qsr_registration_cost);
+DEF_TEST("List of pillars has expected entries", "[embedded.pillar]", pillar_get_all);
 DEF_TEST("Pillar name availability-check succeeds", "[embedded.pillar]", pillar_check_name_availability);
 DEF_TEST("Pillar can be retrieveed by owner", "[embedded.pillar]", pillar_get_by_owner);
 DEF_TEST("Pillar can be retrieveed by name", "[embedded.pillar]", pillar_get_by_name);
@@ -81,4 +80,3 @@ DEF_TEST("Pillar delegations can be retrieved", "[embedded.pillar]", pillar_get_
 DEF_TEST("Deposited qsr matches pillar cost or 0 for random", "[embedded.pillar]", pillar_get_deposited_qsr);
 DEF_TEST("Uncollected pillar rewards are reported", "[embedded.pillar]", pillar_get_uncollected_reward);
 DEF_TEST("Frontier rewards match expected format", "[embedded.pillar]", pillar_get_frontier_reward_per_page);
-*/

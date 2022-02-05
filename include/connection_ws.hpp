@@ -35,9 +35,7 @@ namespace sdk
             websocket_.start();
         }
 
-        ~ws_connector()
-        {
-        }
+        ~ws_connector() {}
 
         /// @brief Send `message` to the Node and receive the response.
         ///
@@ -48,7 +46,7 @@ namespace sdk
         ///
         /// @param message is the data to send.
         /// @return the response.
-        auto Send(std::string const& message) -> std::string override 
+        auto Send(std::string const& message) -> std::string override
         {
             std::unique_lock<std::mutex> lock(req_res_mtx_);
 
@@ -84,15 +82,9 @@ namespace sdk
             response_trigger_.notify_one();
         }
 
-        auto on_open()
-        {
-            connected_.store(true);
-        }
+        auto on_open() { connected_.store(true); }
 
-        auto on_close()
-        {
-            connected_.store(false);
-        }
+        auto on_close() { connected_.store(false); }
 
         auto on_message(ix::WebSocketMessagePtr const& msg)
         {
@@ -103,10 +95,7 @@ namespace sdk
             signal_response_received();
         }
 
-        auto on_error(ix::WebSocketMessagePtr const& msg) const
-        {
-            throw connection_error{msg->errorInfo.reason};
-        }
+        auto on_error(ix::WebSocketMessagePtr const& msg) const { throw connection_error{msg->errorInfo.reason}; }
 
         auto delegate(ix::WebSocketMessagePtr const& msg) -> void
         {

@@ -1,73 +1,49 @@
 #pragma once
 
+#include "config.hpp"
 #include "connection_error.hpp"
 #include "connection_http.hpp"
 #include "connection_ws.hpp"
 #include "connection_wss.hpp"
 #include "sdk.hpp"
 
-#include <nlohmann/json.hpp>
 #include <catch2/catch_test_macros.hpp>
-
-// ----- Definition of connection variables -----------------------------
-
-constexpr auto const http_host = "";
-constexpr auto const ws_host = "";
-constexpr auto const wss_host = "";
-constexpr uint16_t const http_port = 35997;
-constexpr uint16_t const ws_port = 35998;
-constexpr uint16_t const wss_port = 443;
+#include <nlohmann/json.hpp>
 
 // ----- Helper functions -----------------------------------------------
 
-auto inline set_http_connection() { sdk::set_connector<sdk::http_connector>(http_host, http_port); }
-auto inline set_ws_connection() { sdk::set_connector<sdk::ws_connector>(ws_host, ws_port); }
-auto inline set_wss_connection() { sdk::set_connector<sdk::wss_connector>(wss_host, wss_port); }
-//auto inline set_wss_connection() { sdk::set_connector<sdk::eidheim_connector>(wss_host, wss_port); }
+// connection parameters declared in config.hpp, set in main.cpp
+auto inline set_http_connection() { sdk::set_connector<sdk::http_connector>(http_address, http_port); }
+auto inline set_ws_connection() { sdk::set_connector<sdk::ws_connector>(ws_address, ws_port); }
+auto inline set_wss_connection() { sdk::set_connector<sdk::wss_connector>(wss_address, wss_port); }
 
-// ----- Macro to simplify test executions for both http and ws ---------
-
-#define WSS_TEST(label, topic, test_method) \
-TEST_CASE(label, topic) \
-{ \
- set_wss_connection(); \
- test_method(); \
-}
+// ----- Macro to simplify test executions for all endpoints ---------
 
 #define DEF_TEST(label, topic, test_method) \
     TEST_CASE(label, topic)                 \
     {                                       \
-        SECTION("HTTP")                     \
+        if (run_http_tests)                 \
         {                                   \
-            try                             \
+            SECTION("HTTP")                 \
             {                               \
                 set_http_connection();      \
                 test_method();              \
             }                               \
-            catch (...)                     \
-            {                               \
-            }                               \
         }                                   \
-        SECTION("WS")                       \
+        if (run_ws_tests)                   \
         {                                   \
-            try                             \
+            SECTION("WS")                   \
             {                               \
                 set_ws_connection();        \
                 test_method();              \
             }                               \
-            catch (...)                     \
-            {                               \
-            }                               \
         }                                   \
-        SECTION("WSS")                       \
+        if (run_wss_tests)                  \
         {                                   \
-            try                             \
+            SECTION("WSS")                  \
             {                               \
-                set_wss_connection();        \
+                set_wss_connection();       \
                 test_method();              \
-            }                               \
-            catch (...)                     \
-            {                               \
             }                               \
         }                                   \
     }
@@ -85,4 +61,3 @@ template <typename... Keys> inline auto contains_keys(nlohmann::json const& map,
         return map.contains(key) && contains_keys(map, std::forward<Keys>(keys)...);
     }
 }
-

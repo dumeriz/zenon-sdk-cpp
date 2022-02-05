@@ -37,20 +37,17 @@ namespace sdk
             return exchange_data(request);
         }
 
-        auto connected() const -> bool override
-        {
-            return connected_.load();
-        }
+        auto connected() const -> bool override { return connected_.load(); }
 
     private:
-
         httplib::Client http_client_;
         std::atomic_bool connected_{};
 
         // quick validation that we actually can exchange data with the node.
         auto validate_connection() -> std::pair<bool, std::string>
         {
-            auto const response{exchange_data("{\"jsonrpc\":\"2.0\",\"id\":31,\"method\":\"ledger.getFrontierMomentum\"}")};
+            auto const response{
+                exchange_data("{\"jsonrpc\":\"2.0\",\"id\":31,\"method\":\"ledger.getFrontierMomentum\"}")};
             return std::make_pair(response.find("result") != std::string::npos, response);
         }
 

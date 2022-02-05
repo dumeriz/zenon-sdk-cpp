@@ -1,83 +1,68 @@
-/*
- *  main.cpp
- *  Author: Benjamin Sergeant
- *  Copyright (c) 2020 Machine Zone, Inc. All rights reserved.
- *
- *  Super simple standalone example. See ws folder, unittest and doc/usage.md for more.
- *
- *  On macOS
- *  $ mkdir -p build ; cd build ; cmake -DUSE_TLS=1 .. ; make -j ; make install
- *  $ clang++ --std=c++14 --stdlib=libc++ main.cpp -lixwebsocket -lz -framework Security -framework Foundation
- *  $ ./a.out
- *
- *  Or use cmake -DBUILD_DEMO=ON option for other platform
- */
+#include "config.hpp"
 
-#include <ixwebsocket/IXNetSystem.h>
-#include <ixwebsocket/IXWebSocket.h>
-#include <ixwebsocket/IXUserAgent.h>
+#include <catch2/catch_session.hpp>
 #include <iostream>
+#include <string>
 
-int main()
+std::string http_address, ws_address, wss_address;
+int http_port{}, ws_port{}, wss_port{};
+bool run_http_tests{}, run_ws_tests{}, run_wss_tests{};
+
+auto set_endpoint(std::string& address, int& port, bool& trigger, std::string const& provided)
 {
-    // Required on Windows
-    // ix::initNetSystem();
-
-    // Our websocket object
-    ix::WebSocket webSocket;
-
-    // Connect to a server with encryption
-    // See https://machinezone.github.io/IXWebSocket/usage/#tls-support-and-configuration
-    //std::string url("wss://echo.websocket.org");
-    std::string url("wss://duruz.ddns.net");
-    webSocket.setUrl(url);
-
-    std::cout << ix::userAgent() << std::endl;
-    std::cout << "Connecting to " << url << "..." << std::endl;
-
-    // Setup a callback to be fired (in a background thread, watch out for race conditions !)
-    // when a message or an event (open, close, error) is received
-    webSocket.setOnMessageCallback([](const ix::WebSocketMessagePtr& msg)
-        {
-            if (msg->type == ix::WebSocketMessageType::Message)
-            {
-                std::cout << "received message: " << msg->str << std::endl;
-                std::cout << "> " << std::flush;
-            }
-            else if (msg->type == ix::WebSocketMessageType::Open)
-            {
-                std::cout << "Connection established" << std::endl;
-                std::cout << "> " << std::flush;
-            }
-            else if (msg->type == ix::WebSocketMessageType::Error)
-            {
-                // Maybe SSL is not configured properly
-                std::cout << "Connection error: " << msg->errorInfo.reason << std::endl;
-                std::cout << "> " << std::flush;
-            }
-        }
-    );
-
-    // Now that our callback is setup, we can start our background thread and receive messages
-    webSocket.start();
-
-    // Send a message to the server (default to TEXT mode)
-    std::string msg{"{\"id\":2,\"jsonrpc\":\"2.0\",\"method\":\"embedded.pillar.getQsrRegistrationCost\",\"params\":[]}"};
-    webSocket.send(msg);
-
-    // Display a prompt
-    std::cout << "> " << std::flush;
-
-    std::string text;
-    // Read text from the console and send messages in text mode.
-    // Exit with Ctrl-D on Unix or Ctrl-Z on Windows.
-    while (std::getline(std::cin, text))
+    try
     {
-    std::string msg{"{\"id\":2,\"jsonrpc\":\"2.0\",\"method\":\"embedded.pillar.getQsrRegistrationCost\",\"params\":[]}"};
-    webSocket.send(msg);
-        //webSocket.send(text);
-        std::cout << "> " << std::flush;
+        auto port_sep{provided.find_last_of(':')};
+        port = std::stoi(provided.substr(port_sep + 1));
+        address = provided.substr(0, port_sep);
+        trigger = true;
+
+        std::cout << "Running tests against node @ " << address << ", port=" << port << std::endl;
+        return true;
+    }
+    catch (...)
+    {
+        std::cerr << "Invalid format in " << provided << std::endl;
+    }
+    return false;
+}
+
+int main(int argc, char* argv[])
+{
+    Catch::Session session; // There must be exactly one instance
+
+    std::string http_node, ws_node, wss_node;
+
+    using namespace Catch::Clara;
+    auto cli = session.cli() | Opt(http_node, "http")["--http"]("http address (address:port)") |
+               Opt(ws_node, "ws")["--ws"]("websocket address (address:port)") |
+               Opt(wss_node, "wss")["--wss"]("secure websocket address (address:port)");
+
+    session.cli(cli);
+
+    if (auto err{session.applyCommandLine(argc, argv)})
+    {
+        return err;
     }
 
-    return 0;
+    if (!http_node.empty() && !set_endpoint(http_address, http_port, run_http_tests, http_node))
+    {
+        return -1;
+    }
+    if (!ws_node.empty() && !set_endpoint(ws_address, ws_port, run_ws_tests, ws_node))
+    {
+        return -1;
+    }
+    if (!wss_node.empty() && !set_endpoint(wss_address, wss_port, run_wss_tests, wss_node))
+    {
+        return -1;
+    }
+
+    // default to testing against a known ws-enabled node
+    if (!(run_http_tests || run_ws_tests || run_wss_tests))
+    {
+        set_endpoint(ws_address, ws_port, run_ws_tests, "ws://chadasscaptial.com:35998");
+    }
+
+    session.run();
 }
