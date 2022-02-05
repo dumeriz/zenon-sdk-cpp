@@ -45,21 +45,22 @@ auto embedded::pillar::get_by_name(std::string_view pillar_name) -> sdk::return_
 
 auto embedded::pillar::get_delegated_pillar(std::string_view owner_address) -> sdk::return_t<sdk::json_t>
 {
-    return connection.call<sdk::json_t>(4, "embedded.pillar.getDelegatedPillar", owner_address);
+    return connection.call<sdk::json_t>(4, "embedded.pillar.getDelegatedPillar", normalize_address(owner_address));
 }
 
 auto embedded::pillar::get_deposited_qsr(std::string_view address) -> sdk::return_t<uint64_t>
 {
-    return connection.call<uint64_t>(4, "embedded.pillar.getDepositedQsr", address);
+    return connection.call<uint64_t>(4, "embedded.pillar.getDepositedQsr", normalize_address(address));
 }
 
 auto embedded::pillar::get_uncollected_reward(std::string_view owner_address) -> sdk::return_t<sdk::json_t>
 {
-    return connection.call<sdk::json_t>(4, "embedded.pillar.getUncollectedReward", owner_address);
+    return connection.call<sdk::json_t>(4, "embedded.pillar.getUncollectedReward", normalize_address(owner_address));
 }
 
 auto embedded::pillar::get_frontier_reward_by_page(std::string_view address, size_t page, size_t count)
     -> sdk::return_t<sdk::json_t>
 {
-    return connection.call<sdk::json_t>(4, "embedded.pillar.getFrontierRewardByPage", address, page, count);
+    return connection.call<sdk::json_t>(4, "embedded.pillar.getFrontierRewardByPage", normalize_address(address), page,
+                                        count);
 }
