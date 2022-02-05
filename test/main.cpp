@@ -17,7 +17,7 @@ auto set_endpoint(std::string& address, int& port, bool& trigger, std::string co
         address = provided.substr(0, port_sep);
         trigger = true;
 
-        std::cout << "Running tests against node @ " << address << ", port=" << port << std::endl;
+        //std::cout << "Running tests against node @ " << address << ", port=" << port << std::endl;
         return true;
     }
     catch (...)
@@ -61,8 +61,8 @@ int main(int argc, char* argv[])
     // default to testing against a known ws-enabled node
     if (!(run_http_tests || run_ws_tests || run_wss_tests))
     {
-        set_endpoint(ws_address, ws_port, run_ws_tests, "ws://chadasscaptial.com:35998");
+        set_endpoint(ws_address, ws_port, run_ws_tests, "ws://chadasscapital.com:35998");
     }
 
-    session.run();
+    return session.run();
 }

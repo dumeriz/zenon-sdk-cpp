@@ -69,7 +69,7 @@ set(API_SRC ${SRC_DIR}/api_embedded.cpp ${SRC_DIR}/api_ledger.cpp)
 
 add_executable(embedded_tests
     "${PROJECT_SOURCE_DIR}/test/embedded.cpp" "${PROJECT_SOURCE_DIR}/test/main.cpp"
-    ${API_SRC} ${SRC_DIR}/sdk.cpp ${TEST_DIR}/connection.cpp)
+    ${API_SRC} ${SRC_DIR}/sdk.cpp)
 
 target_include_directories(embedded_tests PUBLIC "${TEST_INCLUDES}")
 
@@ -88,4 +88,5 @@ target_link_libraries(connection_tests "${TEST_LIBS}" ixwebsocket)
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras/)
 include(CTest)
 include(Catch)
+catch_discover_tests(connection_tests)
 catch_discover_tests(embedded_tests)
