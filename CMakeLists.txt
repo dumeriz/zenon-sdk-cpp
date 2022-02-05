@@ -51,7 +51,7 @@ FetchContent_MakeAvailable(jsonrpccxx)
 
 set(TEST_INCLUDES
     "${PROJECT_BINARY_DIR}"
-    "${PROJECT_SOURCE_DIR}/include"
+    "${PROJECT_SOURCE_DIR}/src"
     "${catch2_SOURCE_DIR}/src"
     "${jsonrpccxx_SOURCE_DIR}/include"
     "${jsonrpccxx_SOURCE_DIR}/vendor"
@@ -65,10 +65,10 @@ set(TEST_INCLUDES
 
 set(TEST_LIBS Catch2::Catch2 Threads::Threads "${SYS_LIBS}")
 
-set(API_SRC ${SRC_DIR}/api_embedded.cpp ${SRC_DIR}/api_ledger.cpp)
+set(API_SRC ${SRC_DIR}/api/embedded/pillar.cpp ${SRC_DIR}/api/ledger.cpp)
 
 add_executable(embedded_tests
-    "${PROJECT_SOURCE_DIR}/test/embedded.cpp" "${PROJECT_SOURCE_DIR}/test/main.cpp"
+    "${PROJECT_SOURCE_DIR}/test/pillar.cpp" "${PROJECT_SOURCE_DIR}/test/main.cpp"
     ${API_SRC} ${SRC_DIR}/sdk.cpp)
 
 target_include_directories(embedded_tests PUBLIC "${TEST_INCLUDES}")
@@ -77,7 +77,7 @@ target_link_libraries(embedded_tests PRIVATE "${TEST_LIBS}" ixwebsocket)
 
 add_executable(connection_tests
     "${PROJECT_SOURCE_DIR}/test/connection.cpp" "${PROJECT_SOURCE_DIR}/test/main.cpp"
-    ${SRC_DIR}/sdk.cpp ${SRC_DIR}/api_ledger.cpp ${TEST_DIR}/connection.cpp)
+    ${SRC_DIR}/sdk.cpp ${SRC_DIR}/api/ledger.cpp ${TEST_DIR}/connection.cpp)
 
 target_include_directories(connection_tests PUBLIC "${TEST_INCLUDES}")
 

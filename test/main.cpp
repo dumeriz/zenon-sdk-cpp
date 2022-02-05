@@ -17,7 +17,7 @@ auto set_endpoint(std::string& address, int& port, bool& trigger, std::string co
         address = provided.substr(0, port_sep);
         trigger = true;
 
-        //std::cout << "Running tests against node @ " << address << ", port=" << port << std::endl;
+        // std::cout << "Running tests against node @ " << address << ", port=" << port << std::endl;
         return true;
     }
     catch (...)

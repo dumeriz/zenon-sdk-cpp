@@ -2,11 +2,22 @@
 
 #include "connection_error.hpp"
 #include "connector.hpp"
+
+#include <nlohmann/json.hpp>
+
 #include <memory>
 
 namespace sdk
 {
     using connector_t = std::shared_ptr<connector>;
+    using json_t = nlohmann::json;
+
+    template <typename T> struct return_t
+    {
+        bool const ok;
+        T const value;
+        operator bool() const { return ok; }
+    };
 
     namespace detail
     {
@@ -34,5 +45,8 @@ namespace sdk
 
     /// @brief Checks if a connection has been established.
     auto connected() -> bool;
+
+    /// @brief Returns the error from the last api call.
+    auto error() -> std::string const&;
 
 } // namespace sdk

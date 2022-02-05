@@ -18,3 +18,13 @@ auto sdk::detail::api_connection::_set_connector(sdk::connector_t connector)
 auto sdk::detail::set_connector(sdk::connector_t connector) -> void { connection._set_connector(connector); }
 
 auto sdk::connected() -> bool { return connection.connected(); }
+
+auto sdk::error() -> std::string const&
+{
+    if (!connected())
+    {
+        static std::string no_error{};
+        return no_error;
+    }
+    return connection.error();
+}
