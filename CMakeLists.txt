@@ -49,12 +49,14 @@ FetchContent_Declare(jsonrpccxx
 
 FetchContent_MakeAvailable(jsonrpccxx)
 
-set(TEST_INCLUDES
+set(SDK_INCLUDES
     "${PROJECT_BINARY_DIR}"
     "${PROJECT_SOURCE_DIR}/src"
     "${catch2_SOURCE_DIR}/src"
     "${jsonrpccxx_SOURCE_DIR}/include"
     "${jsonrpccxx_SOURCE_DIR}/vendor"
+    "${ixwebsocket_SOURCE_DIR}"
+    CACHE INTERNAL ""
 )
 
 #get_cmake_property(_variableNames VARIABLES)
@@ -63,7 +65,12 @@ set(TEST_INCLUDES
 #    message(STATUS "${_variableName}=${${_variableName}}")
 #endforeach()
 
-set(TEST_LIBS Catch2::Catch2 Threads::Threads "${SYS_LIBS}")
+set(SDK_LIBS
+    Catch2::Catch2
+    Threads::Threads
+    "${SYS_LIBS}"
+    ixwebsocket
+    CACHE INTERNAL "")
 
 set(API_SRC ${SRC_DIR}/api/embedded/pillar.cpp ${SRC_DIR}/api/ledger.cpp)
 
@@ -71,17 +78,17 @@ add_executable(embedded_tests
     "${PROJECT_SOURCE_DIR}/test/pillar.cpp" "${PROJECT_SOURCE_DIR}/test/main.cpp"
     ${API_SRC} ${SRC_DIR}/sdk.cpp)
 
-target_include_directories(embedded_tests PUBLIC "${TEST_INCLUDES}")
+target_include_directories(embedded_tests PUBLIC "${SDK_INCLUDES}")
 
-target_link_libraries(embedded_tests PRIVATE "${TEST_LIBS}" ixwebsocket)
+target_link_libraries(embedded_tests PRIVATE "${SDK_LIBS}")
 
 add_executable(connection_tests
     "${PROJECT_SOURCE_DIR}/test/connection.cpp" "${PROJECT_SOURCE_DIR}/test/main.cpp"
     ${SRC_DIR}/sdk.cpp ${SRC_DIR}/api/ledger.cpp ${TEST_DIR}/connection.cpp)
 
-target_include_directories(connection_tests PUBLIC "${TEST_INCLUDES}")
+target_include_directories(connection_tests PUBLIC "${SDK_INCLUDES}")
 
-target_link_libraries(connection_tests "${TEST_LIBS}" ixwebsocket)
+target_link_libraries(connection_tests "${SDK_LIBS}")
 
 ### cmake test discovery
 
